@@ -1,0 +1,5 @@
+
+packageName: ibm-powervs-block-csi-driver-operator
+channels:
+- name: stable
+  currentCSV: ibm-powervs-block-csi-driver-operator.v4.12.0
