@@ -47,5 +47,52 @@ cd hack
 ```
 
 At the end it will print a command that creates `Subscription` for the newly created index image.
+Subscription command would look like below:
+```
+oc apply -f - <<EOF
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: ibm-powervs-block
+  namespace: openshift-marketplace
+spec:
+  sourceType: grpc
+  image: quay.io/<my-repo>/efs-index
+EOF
+```
+Add the CatalogSource to the OCP cluster.
 
-TODO: update the example to use `quay.io/openshift` once the images are mirrored there. `registry.ci.openshift.org` is not public.
+## Installing the PowerVS Block CSI Driver Operator
+**Prerequisites**
+- Access to the OpenShift Container Platform web console
+
+**Procedure**
+<br>To install the PowerVS Block CSI Driver Operator from the web console:
+- Log in to the web console.
+- Install the PowerVS Block CSI Operator:
+  - Click **Operators → OperatorHub**
+  - Locate the PowerVS Block CSI Operator by typing **PowerVS Block CSI** in the filter box
+  - Click the **PowerVS Block CSI Driver Operator** button
+  - On the PowerVS Block CSI Driver Operator page, click **Install**
+  - On the Install Operator page, ensure that:
+    - **All namespaces** on the cluster (default) is selected
+    - Installed Namespace is set to **openshift-cluster-csi-drivers**
+  - Click **Install**
+  <br>After the installation finishes, the PowerVS Block CSI Operator is listed in the **Installed Operators** section of the web console.
+- Install the PowerVS Block CSI Driver:
+  - Click **administration → CustomResourceDefinitions → ClusterCSIDriver**
+  - On the Instances tab, click **Create ClusterCSIDriver**
+  - Use the following YAML file:
+    ```
+    apiVersion: operator.openshift.io/v1
+    kind: ClusterCSIDriver
+    metadata:
+        name: powervs.csi.ibm.com
+    spec:
+      managementState: Managed
+    ```
+  - Click Create
+  - Wait for the following Conditions to change to a "true" status:
+    - PowerVSDriverCredentialsRequestControllerAvailable
+    - PowerVSDriverNodeServiceControllerAvailable
+    - PowerVSDriverControllerServiceControllerAvailable
