@@ -2,24 +2,26 @@
 
 An operator to deploy the [IBM PowerVS Block CSI Driver](https://github.com/openshift/ibm-powervs-block-csi-driver) in OKD.
 
-This operator is installed by OLM.
+This operator is installed by the [cluster-storage-operator](https://github.com/openshift/cluster-storage-operator).
 
 # Quick start
+
+Before running the operator manually, you must remove the operator installed by CSO/CVO
+
+```shell
+# Scale down CVO and CSO
+oc scale --replicas=0 deploy/cluster-version-operator -n openshift-cluster-version
+oc scale --replicas=0 deploy/cluster-storage-operator -n openshift-cluster-storage-operator
+
+# Delete operator resources (daemonset, deployments)
+oc -n openshift-cluster-csi-drivers delete deployment.apps/ibm-powervs-block-csi-driver-operator deployment.apps/ibm-powervs-block-csi-driver-controller daemonset.apps/ibm-powervs-block-csi-driver-node
+```
 
 To build and run the operator locally:
 
 ```shell
 # Create only the resources the operator needs to run via CLI
-oc apply -f - <<EOF
-apiVersion: operator.openshift.io/v1
-kind: ClusterCSIDriver
-metadata:
-    name: powervs.csi.ibm.com
-spec:
-  logLevel: Normal
-  managementState: Managed
-  operatorLogLevel: Trace
-EOF
+oc apply -f https://raw.githubusercontent.com/openshift/cluster-storage-operator/master/assets/csidriveroperators/ibm-powervs-block/07_cr.yaml
 
 # Build the operator
 make
@@ -36,63 +38,3 @@ export KUBE_RBAC_PROXY_IMAGE=quay.io/brancz/kube-rbac-proxy:v0.12.0
 # Run the operator via CLI
 ./ibm-powervs-block-csi-driver-operator start --kubeconfig $KUBECONFIG --namespace openshift-cluster-csi-drivers
 ```
-
-# OLM
-
-To build an bundle + index images, use `hack/create-bundle`.
-
-```shell
-cd hack
-./create-bundle registry.ci.openshift.org/ocp/4.9:ibm-powervs-block-csi-driver registry.ci.openshift.org/ocp/4.9:ibm-powervs-block-csi-driver-operator quay.io/<my-repo>/efs-bundle quay.io/<my-repo>/efs-index
-```
-
-At the end it will print a command that creates `Subscription` for the newly created index image.
-Subscription command would look like below:
-```
-oc apply -f - <<EOF
-apiVersion: operators.coreos.com/v1alpha1
-kind: CatalogSource
-metadata:
-  name: ibm-powervs-block
-  namespace: openshift-marketplace
-spec:
-  sourceType: grpc
-  image: quay.io/<my-repo>/efs-index
-EOF
-```
-Add the CatalogSource to the OCP cluster.
-
-## Installing the PowerVS Block CSI Driver Operator
-**Prerequisites**
-- Access to the OpenShift Container Platform web console
-
-**Procedure**
-<br>To install the PowerVS Block CSI Driver Operator from the web console:
-- Log in to the web console.
-- Install the PowerVS Block CSI Operator:
-  - Click **Operators → OperatorHub**
-  - Locate the PowerVS Block CSI Operator by typing **PowerVS Block CSI** in the filter box
-  - Click the **PowerVS Block CSI Driver Operator** button
-  - On the PowerVS Block CSI Driver Operator page, click **Install**
-  - On the Install Operator page, ensure that:
-    - **All namespaces** on the cluster (default) is selected
-    - Installed Namespace is set to **openshift-cluster-csi-drivers**
-  - Click **Install**
-  <br>After the installation finishes, the PowerVS Block CSI Operator is listed in the **Installed Operators** section of the web console.
-- Install the PowerVS Block CSI Driver:
-  - Click **administration → CustomResourceDefinitions → ClusterCSIDriver**
-  - On the Instances tab, click **Create ClusterCSIDriver**
-  - Use the following YAML file:
-    ```
-    apiVersion: operator.openshift.io/v1
-    kind: ClusterCSIDriver
-    metadata:
-        name: powervs.csi.ibm.com
-    spec:
-      managementState: Managed
-    ```
-  - Click Create
-  - Wait for the following Conditions to change to a "true" status:
-    - PowerVSDriverCredentialsRequestControllerAvailable
-    - PowerVSDriverNodeServiceControllerAvailable
-    - PowerVSDriverControllerServiceControllerAvailable
